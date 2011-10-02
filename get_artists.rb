@@ -4,10 +4,12 @@ require 'json'
 
 
 class GetArtists
-  @get_request = "http://api.nytimes.com/svc/news/v3/content/all/arts/24.json?api-key=11f1caeab6d826d5fc68adfabc901d1a:3:64948349"
-  
+  @nytimes_get_request = "http://api.nytimes.com/svc/news/v3/content/all/arts/24.json?api-key=11f1caeab6d826d5fc68adfabc901d1a:3:64948349"
+  # @spotify_artist_get_request = "http://ws.spotify.com/search/1/artist.json?q="
+  @spotify_get_request = "http://ws.spotify.com/search/1/track.json?q="
+    
   def GetArtists.make_json_request()
-    Net::HTTP.get_response URI.parse(@get_request)
+    Net::HTTP.get_response URI.parse(@nytimes_get_request)
   end
   
   #give data.body from make_json_request
@@ -44,15 +46,35 @@ class GetArtists
     artists
   end
   
+  
+  def GetArtists.get_spotify_URIs(artists)
+    uri_list = []
+    artists.each do |artist|
+      encoded_artist = artist.gsub(/\s/, '+')
+      request_url = @spotify_get_request+encoded_artist
+      data = Net::HTTP.get_response URI.parse(request_url)
+      json_obj = JSON.parse(data.body)
+      
+      track_uri = json_obj["tracks"][0]["href"]
+      
+      p track_uri
+      
+      uri_list << track_uri
+    end
+    uri_list
+  end  
+  
 end
 
 
 
 data = GetArtists.make_json_request
 artists = GetArtists.create_list(data.body)
+spotify_URIs = GetArtists.get_spotify_URIs(artists)
 
-File.open("artists.txt", 'w') {|f| 
-  artists.each do |artist|
-    f.write(artist.to_s + "\n")
+
+File.open("tracks.txt", 'w') {|f| 
+  spotify_URIs.each do |uri|
+    f.write(uri.to_s + "\n")
   end
 }
